@@ -45,8 +45,9 @@ function getUsers($db) {
     $params = [];
 
     if ($search !== "") {
-        $sql     .= " WHERE name LIKE :search OR email LIKE :search";
-        $params[":search"] = "%" . $search . "%";
+        $sql     .= " WHERE name LIKE :search OR email LIKE :search2";
+        $params[":search"]  = "%" . $search . "%";
+        $params[":search2"] = "%" . $search . "%";
     }
 
     if (in_array($sort, $allowed)) {
@@ -247,7 +248,6 @@ function validateEmail($email) {
 function sanitizeInput($data) {
     $data = trim($data);
     $data = strip_tags($data);
-    $data = htmlspecialchars($data, ENT_QUOTES, "UTF-8");
     return $data;
 }
 

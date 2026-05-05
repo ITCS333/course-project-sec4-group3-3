@@ -54,7 +54,7 @@ function getUsers($db) {
         $dir  = strtolower($order) === "desc" ? "DESC" : "ASC";
         $sql .= " ORDER BY $sort $dir";
     } else {
-        $sql .= " ORDER BY name ASC";
+        $sql .= " ORDER BY id ASC";
     }
 
     $stmt = $db->prepare($sql);

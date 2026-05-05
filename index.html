@@ -1,1 +1,156 @@
 <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ITCS333 — Internet Software Development</title>
+  <style>
+    :root {
+      --bg: #0a0a0f; --surface: #13131a; --border: #2a2a3a;
+      --accent: #6c63ff; --accent2: #ff6584; --text: #e8e8f0; --muted: #888899;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem;
+      background: rgba(10,10,15,0.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { font-family: monospace; font-size: 1.1rem; color: var(--accent); text-decoration: none; font-weight: 700; }
+    .nav-logo span { color: var(--accent2); }
+    nav ul { display: flex; gap: 1.75rem; list-style: none; }
+    nav ul a { color: var(--muted); text-decoration: none; font-size: 0.875rem; font-weight: 600; transition: color 0.2s; }
+    nav ul a:hover { color: var(--text); }
+    .nav-auth { display: flex; gap: 0.75rem; }
+    .btn { display: inline-flex; align-items: center; padding: 0.5rem 1.2rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; border: none; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #5a52e0; }
+
+    /* HERO */
+    #hero {
+      min-height: 80vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      padding: 5rem 2rem;
+      background: radial-gradient(ellipse 70% 50% at 50% 30%, rgba(108,99,255,0.1) 0%, transparent 70%);
+    }
+    .hero-badge {
+      display: inline-block; font-family: monospace; font-size: 0.75rem;
+      color: var(--accent); background: rgba(108,99,255,0.12);
+      border: 1px solid rgba(108,99,255,0.3); border-radius: 100px;
+      padding: 0.4rem 1rem; margin-bottom: 2rem; letter-spacing: 0.08em;
+    }
+    #hero h1 { font-size: clamp(2.5rem, 7vw, 5rem); font-weight: 800; line-height: 1.08; letter-spacing: -0.03em; }
+    #hero h1 em { font-style: normal; color: var(--accent); }
+    #hero p { margin-top: 1.5rem; font-size: 1.1rem; color: var(--muted); max-width: 500px; line-height: 1.7; }
+    .hero-actions { display: flex; gap: 1rem; margin-top: 2.5rem; flex-wrap: wrap; justify-content: center; }
+    .hero-actions .btn { font-size: 0.95rem; padding: 0.75rem 1.75rem; }
+
+    /* FEATURES */
+    #features { padding: 5rem 2rem; max-width: 1100px; margin: 0 auto; }
+    .section-tag { font-family: monospace; font-size: 0.72rem; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 0.5rem; }
+    .section-title { font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 3rem; }
+    #feature-list {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1px; background: var(--border);
+      border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+    }
+    .feature-card { background: var(--surface); padding: 2rem; transition: background 0.2s; }
+    .feature-card:hover { background: #1a1a25; }
+    .feature-icon { font-size: 1.75rem; margin-bottom: 0.75rem; }
+    .feature-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .feature-desc { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .footer-brand { font-family: monospace; font-size: 0.85rem; color: var(--muted); }
+    footer ul { display: flex; gap: 1.5rem; list-style: none; }
+    footer ul a { font-size: 0.8rem; color: var(--muted); text-decoration: none; }
+    footer ul a:hover { color: var(--text); }
+
+    @media (max-width: 640px) {
+      nav ul { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav id="main-nav">
+    <a href="index.html" class="nav-logo">ITCS<span>333</span></a>
+    <ul id="nav-links">
+      <li><a href="src/resources/index.php">Resources</a></li>
+      <li><a href="src/weekly/index.php">Weekly</a></li>
+      <li><a href="src/assignments/index.php">Assignments</a></li>
+      <li><a href="src/discussion/index.php">Discussion</a></li>
+    </ul>
+    <div class="nav-auth" id="nav-auth">
+      <a href="src/auth/login.html" class="btn btn-outline" id="nav-login-btn">Login</a>
+    </div>
+  </nav>
+
+  <section id="hero">
+    <span class="hero-badge">University of Bahrain · ITCS333</span>
+    <h1>Internet <em>Software</em><br/>Development</h1>
+    <p id="hero-description">
+      Your one-stop course platform — browse resources, track weekly progress,
+      manage assignments, and discuss with peers.
+    </p>
+    <div class="hero-actions">
+      <a href="src/auth/login.html" class="btn btn-primary" id="hero-login-btn">Get Started →</a>
+      <a href="#features" class="btn btn-outline">Explore</a>
+    </div>
+  </section>
+
+  <section id="features">
+    <p class="section-tag">What's Inside</p>
+    <h2 class="section-title">Everything in one place</h2>
+    <div id="feature-list">
+      <div class="feature-card">
+        <div class="feature-icon">📚</div>
+        <div class="feature-title">Course Resources</div>
+        <p class="feature-desc">All materials, slides, and references organized by topic.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📅</div>
+        <div class="feature-title">Weekly Breakdown</div>
+        <p class="feature-desc">Structured week-by-week content and learning objectives.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📝</div>
+        <div class="feature-title">Assignments</div>
+        <p class="feature-desc">View assignments, due dates, and downloadable starter files.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <div class="feature-title">Discussion Board</div>
+        <p class="feature-desc">Ask questions and engage with classmates in real-time.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔐</div>
+        <div class="feature-title">Secure Auth</div>
+        <p class="feature-desc">Role-based access for students and admins.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚙️</div>
+        <div class="feature-title">Admin Panel</div>
+        <p class="feature-desc">Manage users and course content from one dashboard.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span class="footer-brand">ITCS333 · University of Bahrain</span>
+    <ul>
+      <li><a href="src/auth/login.html">Login</a></li>
+      <li><a href="src/discussion/index.php">Discussion</a></li>
+    </ul>
+  </footer>
+
+</body>
+</html>

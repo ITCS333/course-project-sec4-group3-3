@@ -1,102 +1,87 @@
-<!--
-  Requirement: Create the Dedicated Page for a Single Assignment
-
-  Instructions:
-  This page displays the full details for one assignment and allows
-  students to read and post discussion comments.
--->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <!-- TODO: Add <meta> tags for charset (UTF-8) and viewport
-         (width=device-width, initial-scale=1.0). -->
 
-    <!-- TODO: Add a <title>, e.g., "Assignment Details". -->
+    <meta charset="UTF-8" />
 
-    <!-- TODO: Link to your CSS framework or stylesheet. -->
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    />
 
-    <!-- Required: link details.js with defer. -->
+    <title>Assignment Details</title>
+
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    />
+
     <script src="details.js" defer></script>
+
 </head>
+
 <body>
 
-    <!-- TODO: Create a <header>.
-         Inside it, add an <h1 id="assignment-title">.
-         details.js will set its textContent to the assignment's title.
-         Leave it empty for now. -->
+    <header class="container">
 
-    <!-- TODO: Create the <main> content area. -->
+        <a href="list.html">
+            ← Back to Assignments
+        </a>
 
-        <!-- ============================================================
-             Section 1: Assignment Information
-             ============================================================ -->
-        <!-- TODO: Use an <article> to display the main assignment
-             information. -->
+        <h1 id="assignment-title"></h1>
 
-            <!-- TODO: Add a <p id="assignment-due-date">.
-                 details.js will set it to "Due: YYYY-MM-DD"
-                 using the due_date column from the assignments table. -->
+    </header>
 
-            <!-- TODO: Add a <h2> "Description". -->
+    <main class="container">
 
-            <!-- TODO: Add a <p id="assignment-description">.
-                 details.js will set its textContent to the assignment's
-                 description from the assignments table. -->
+        <article>
 
-            <!-- TODO: Add a <h2> "Attached Files &amp; Links". -->
+            <p id="assignment-due-date"></p>
 
-            <!-- TODO: Add a <ul id="assignment-files-list">.
-                 details.js will populate this list from the files column
-                 in the assignments table. That column is a JSON-encoded
-                 array of URL strings. Each URL becomes a
-                 <li><a href="{url}">{url}</a></li> item.
-                 Leave the list empty here. -->
+            <h2>Description</h2>
 
-        <!-- End of <article> -->
+            <p id="assignment-description"></p>
 
+            <h2>Attached Files &amp; Links</h2>
 
-        <!-- ============================================================
-             Section 2: Discussion Forum
-             ============================================================ -->
-        <!-- TODO: Create a <section id="discussion-forum">. -->
+            <ul id="assignment-files-list"></ul>
 
-            <!-- TODO: Add a <h2> "Questions &amp; Discussion". -->
+        </article>
 
-            <!-- Subsection 2.1: Existing Comments -->
-            <!-- TODO: Add a <div id="comment-list">.
-                 details.js will inject one <article> per comment here.
-                 Each comment article follows this structure:
+        <section id="discussion-forum">
 
-                 <article>
-                     <p>Comment text goes here.</p>
-                     <footer>Posted by: Author Name</footer>
-                 </article>
+            <h2>Questions &amp; Discussion</h2>
 
-                 Comments come from the comments_assignment table
-                 (columns: id, assignment_id, author, text, created_at).
-                 Leave the div empty here. -->
+            <div id="comment-list"></div>
 
-            <!-- Subsection 2.2: Add a Comment Form -->
-            <!-- TODO: Create a <form id="comment-form"> (action="#").
-                 The id is required by details.js. -->
+            <form id="comment-form" action="#">
 
-                <!-- TODO: Use a <fieldset> to group the controls. -->
-                    <!-- TODO: Add a <legend>, e.g., "Ask a Question". -->
+                <fieldset>
 
-                    <!-- TODO: Add a <label> and <textarea> for the comment.
-                         - label for="new-comment"
-                         - textarea id="new-comment", required
-                         - The id must be exactly "new-comment" as
-                           details.js reads this element by that id. -->
+                    <legend>Ask a Question</legend>
 
-                    <!-- TODO: Add a submit <button>.
-                         - type="submit"
-                         - Text: "Post Comment" -->
-                <!-- End of <fieldset> -->
-            <!-- End of <form> -->
+                    <label for="new-comment">
+                        Your Comment
+                    </label>
 
-        <!-- End of <section#discussion-forum> -->
+                    <textarea
+                        id="new-comment"
+                        required
+                    ></textarea>
 
-    <!-- End of <main> -->
+                    <button type="submit">
+                        Post Comment
+                    </button>
+
+                </fieldset>
+
+            </form>
+
+        </section>
+
+    </main>
+
 </body>
+
 </html>

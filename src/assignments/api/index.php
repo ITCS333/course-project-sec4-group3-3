@@ -1,83 +1,117 @@
 <?php
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header("Content-Type: application/json");
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
     http_response_code(200);
     exit;
 }
 
-require_once __DIR__ . '/../../common/db.php';
+require_once __DIR__ . "/../../common/db.php";
 
 $db = getDBConnection();
 
-$method = $_SERVER['REQUEST_METHOD'];
+$method = $_SERVER["REQUEST_METHOD"];
 
-$rawData = file_get_contents('php://input');
-$data = json_decode($rawData, true) ?? [];
+$raw = file_get_contents("php://input");
+$data = json_decode($raw, true) ?? [];
 
-$action       = $_GET['action'] ?? null;
-$id           = $_GET['id'] ?? null;
-$assignmentId = $_GET['assignment_id'] ?? null;
-$commentId    = $_GET['comment_id'] ?? null;
+$action       = $_GET["action"] ?? "";
+$id           = isset($_GET["id"]) ? (int) $_GET["id"] : null;
+$assignmentId = isset($_GET["assignment_id"])
+    ? (int) $_GET["assignment_id"]
+    : null;
+$commentId    = isset($_GET["comment_id"])
+    ? (int) $_GET["comment_id"]
+    : null;
 
-function getAllAssignments(PDO $db): void
+function getAllAssignments($db)
 {
-    $query = "SELECT * FROM assignments";
+    $search = trim($_GET["search"] ?? "");
+    $sort   = trim($_GET["sort"] ?? "due_date");
+    $order  = trim($_GET["order"] ?? "asc");
+
+    $allowedSort  = ["title", "due_date", "created_at"];
+    $allowedOrder = ["asc", "desc"];
+
+    if (!in_array($sort, $allowedSort)) {
+        $sort = "due_date";
+    }
+
+    if (!in_array(strtolower($order), $allowedOrder)) {
+        $order = "asc";
+    }
+
+    $sql = "
+        SELECT
+            id,
+            title,
+            description,
+            due_date,
+            files,
+            created_at,
+            updated_at
+        FROM assignments
+    ";
 
     $params = [];
 
-    if (!empty($_GET['search'])) {
-        $query .= " WHERE title LIKE :search OR description LIKE :search";
-        $params[':search'] = '%' . $_GET['search'] . '%';
+    if ($search !== "") {
+
+        $sql .= "
+            WHERE
+                title LIKE :search
+                OR description LIKE :search2
+        ";
+
+        $params[":search"]  = "%" . $search . "%";
+        $params[":search2"] = "%" . $search . "%";
     }
 
-    $allowedSort = ['title', 'due_date', 'created_at'];
+    $sql .= " ORDER BY $sort $order";
 
-    $sort = in_array($_GET['sort'] ?? '', $allowedSort)
-        ? $_GET['sort']
-        : 'due_date';
+    $stmt = $db->prepare($sql);
 
-    $order = strtolower($_GET['order'] ?? 'asc');
-    $order = $order === 'desc' ? 'DESC' : 'ASC';
-
-    $query .= " ORDER BY $sort $order";
-
-    $stmt = $db->prepare($query);
-
-    foreach ($params as $key => $value) {
-        $stmt->bindValue($key, $value);
-    }
-
-    $stmt->execute();
+    $stmt->execute($params);
 
     $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($assignments as &$assignment) {
-        $assignment['files'] =
-            json_decode($assignment['files'], true) ?? [];
+
+        $assignment["files"] =
+            json_decode($assignment["files"], true) ?? [];
     }
 
     sendResponse([
-        'success' => true,
-        'data' => $assignments
+        "success" => true,
+        "data"    => $assignments
     ]);
 }
 
-function getAssignmentById(PDO $db, $id): void
+function getAssignmentById($db, $id)
 {
     if (!$id || !is_numeric($id)) {
+
         sendResponse([
-            'success' => false,
-            'message' => 'Invalid assignment ID'
+            "success" => false,
+            "message" => "Invalid assignment ID."
         ], 400);
     }
 
     $stmt = $db->prepare("
-        SELECT * FROM assignments WHERE id = ?
+        SELECT
+            id,
+            title,
+            description,
+            due_date,
+            files,
+            created_at,
+            updated_at
+        FROM assignments
+        WHERE id = ?
     ");
 
     $stmt->execute([$id]);
@@ -85,46 +119,46 @@ function getAssignmentById(PDO $db, $id): void
     $assignment = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$assignment) {
+
         sendResponse([
-            'success' => false,
-            'message' => 'Assignment not found'
+            "success" => false,
+            "message" => "Assignment not found."
         ], 404);
     }
 
-    $assignment['files'] =
-        json_decode($assignment['files'], true) ?? [];
+    $assignment["files"] =
+        json_decode($assignment["files"], true) ?? [];
 
     sendResponse([
-        'success' => true,
-        'data' => $assignment
+        "success" => true,
+        "data"    => $assignment
     ]);
 }
 
-function createAssignment(PDO $db, array $data): void
+function createAssignment($db, $data)
 {
-    if (
-        empty($data['title']) ||
-        empty($data['description']) ||
-        empty($data['due_date'])
-    ) {
+    $title       = trim($data["title"] ?? "");
+    $description = trim($data["description"] ?? "");
+    $due_date    = trim($data["due_date"] ?? "");
+    $files       = $data["files"] ?? [];
+
+    if (!$title || !$description || !$due_date) {
+
         sendResponse([
-            'success' => false,
-            'message' => 'Missing required fields'
+            "success" => false,
+            "message" => "Missing required fields."
         ], 400);
     }
-
-    $title = sanitizeInput($data['title']);
-    $description = sanitizeInput($data['description']);
-    $due_date = trim($data['due_date']);
 
     if (!validateDate($due_date)) {
+
         sendResponse([
-            'success' => false,
-            'message' => 'Invalid due date format'
+            "success" => false,
+            "message" => "Invalid due date."
         ], 400);
     }
 
-    $files = json_encode($data['files'] ?? []);
+    $filesJson = json_encode($files);
 
     $stmt = $db->prepare("
         INSERT INTO assignments
@@ -132,117 +166,151 @@ function createAssignment(PDO $db, array $data): void
         VALUES (?, ?, ?, ?)
     ");
 
-    $success = $stmt->execute([
-        $title,
-        $description,
+    $stmt->execute([
+        sanitizeInput($title),
+        sanitizeInput($description),
         $due_date,
-        $files
+        $filesJson
     ]);
 
-    if ($success) {
-        sendResponse([
-            'success' => true,
-            'message' => 'Assignment created',
-            'id' => $db->lastInsertId()
-        ], 201);
+    if ($stmt->rowCount() > 0) {
+
+        $newId = $db->lastInsertId();
+
+        http_response_code(201);
+
+        echo json_encode([
+            "success" => true,
+            "message" => "Assignment created.",
+            "id"      => $newId
+        ]);
+
+        exit;
     }
 
     sendResponse([
-        'success' => false,
-        'message' => 'Failed to create assignment'
+        "success" => false,
+        "message" => "Failed to create assignment."
     ], 500);
 }
 
-function updateAssignment(PDO $db, array $data): void
+function updateAssignment($db, $data)
 {
-    if (empty($data['id'])) {
+    $id = isset($data["id"])
+        ? (int) $data["id"]
+        : 0;
+
+    if (!$id) {
+
         sendResponse([
-            'success' => false,
-            'message' => 'Assignment ID required'
+            "success" => false,
+            "message" => "ID is required."
         ], 400);
     }
 
-    $stmt = $db->prepare("
+    $check = $db->prepare("
         SELECT id FROM assignments WHERE id = ?
     ");
 
-    $stmt->execute([$data['id']]);
+    $check->execute([$id]);
 
-    if (!$stmt->fetch()) {
+    if (!$check->fetch()) {
+
         sendResponse([
-            'success' => false,
-            'message' => 'Assignment not found'
+            "success" => false,
+            "message" => "Assignment not found."
         ], 404);
     }
 
     $fields = [];
-    $values = [];
+    $params = [];
 
-    if (isset($data['title'])) {
+    if (isset($data["title"])) {
+
         $fields[] = "title = ?";
-        $values[] = sanitizeInput($data['title']);
+
+        $params[] =
+            sanitizeInput(trim($data["title"]));
     }
 
-    if (isset($data['description'])) {
+    if (isset($data["description"])) {
+
         $fields[] = "description = ?";
-        $values[] = sanitizeInput($data['description']);
+
+        $params[] =
+            sanitizeInput(trim($data["description"]));
     }
 
-    if (isset($data['due_date'])) {
+    if (isset($data["due_date"])) {
 
-        if (!validateDate($data['due_date'])) {
+        if (!validateDate($data["due_date"])) {
+
             sendResponse([
-                'success' => false,
-                'message' => 'Invalid due date'
+                "success" => false,
+                "message" => "Invalid due date."
             ], 400);
         }
 
         $fields[] = "due_date = ?";
-        $values[] = trim($data['due_date']);
+
+        $params[] = trim($data["due_date"]);
     }
 
-    if (isset($data['files'])) {
+    if (isset($data["files"])) {
+
         $fields[] = "files = ?";
-        $values[] = json_encode($data['files']);
+
+        $params[] = json_encode($data["files"]);
     }
 
     if (empty($fields)) {
+
         sendResponse([
-            'success' => false,
-            'message' => 'No fields to update'
+            "success" => false,
+            "message" => "No fields to update."
         ], 400);
     }
 
-    $values[] = $data['id'];
+    $params[] = $id;
 
-    $query = "
+    $sql = "
         UPDATE assignments
-        SET " . implode(', ', $fields) . "
+        SET " . implode(", ", $fields) . "
         WHERE id = ?
     ";
 
-    $stmt = $db->prepare($query);
+    $stmt = $db->prepare($sql);
 
-    if ($stmt->execute($values)) {
-        sendResponse([
-            'success' => true,
-            'message' => 'Assignment updated'
-        ]);
-    }
+    $stmt->execute($params);
 
     sendResponse([
-        'success' => false,
-        'message' => 'Update failed'
-    ], 500);
+        "success" => true,
+        "message" => "Assignment updated successfully."
+    ]);
 }
 
-function deleteAssignment(PDO $db, $id): void
+function deleteAssignment($db, $id)
 {
     if (!$id || !is_numeric($id)) {
+
         sendResponse([
-            'success' => false,
-            'message' => 'Invalid assignment ID'
+            "success" => false,
+            "message" => "Invalid assignment ID."
         ], 400);
+    }
+
+    $check = $db->prepare("
+        SELECT id FROM assignments WHERE id = ?
+    ");
+
+    $check->execute([$id]);
+
+    if (!$check->fetch()) {
+
+        sendResponse([
+            "success" => false,
+            "message" => "Assignment not found."
+        ], 404);
     }
 
     $stmt = $db->prepare("
@@ -252,29 +320,37 @@ function deleteAssignment(PDO $db, $id): void
     $stmt->execute([$id]);
 
     if ($stmt->rowCount() > 0) {
+
         sendResponse([
-            'success' => true,
-            'message' => 'Assignment deleted'
+            "success" => true,
+            "message" => "Assignment deleted successfully."
         ]);
     }
 
     sendResponse([
-        'success' => false,
-        'message' => 'Assignment not found'
-    ], 404);
+        "success" => false,
+        "message" => "Failed to delete assignment."
+    ], 500);
 }
 
-function getCommentsByAssignment(PDO $db, $assignmentId): void
+function getCommentsByAssignment($db, $assignmentId)
 {
     if (!$assignmentId || !is_numeric($assignmentId)) {
+
         sendResponse([
-            'success' => false,
-            'message' => 'Invalid assignment ID'
+            "success" => false,
+            "message" => "Invalid assignment ID."
         ], 400);
     }
 
     $stmt = $db->prepare("
-        SELECT * FROM comments_assignment
+        SELECT
+            id,
+            assignment_id,
+            author,
+            text,
+            created_at
+        FROM comments_assignment
         WHERE assignment_id = ?
         ORDER BY created_at ASC
     ");
@@ -284,35 +360,48 @@ function getCommentsByAssignment(PDO $db, $assignmentId): void
     $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     sendResponse([
-        'success' => true,
-        'data' => $comments
+        "success" => true,
+        "data"    => $comments
     ]);
 }
 
-function createComment(PDO $db, array $data): void
+function createComment($db, $data)
 {
-    if (
-        empty($data['assignment_id']) ||
-        empty($data['author']) ||
-        empty($data['text'])
-    ) {
+    $assignmentId =
+        isset($data["assignment_id"])
+            ? (int) $data["assignment_id"]
+            : 0;
+
+    $author =
+        trim($data["author"] ?? "");
+
+    $text =
+        trim($data["text"] ?? "");
+
+    if (!$assignmentId || !$text) {
+
         sendResponse([
-            'success' => false,
-            'message' => 'Missing required fields'
+            "success" => false,
+            "message" => "assignment_id and text are required."
         ], 400);
     }
 
-    $stmt = $db->prepare("
+    $check = $db->prepare("
         SELECT id FROM assignments WHERE id = ?
     ");
 
-    $stmt->execute([$data['assignment_id']]);
+    $check->execute([$assignmentId]);
 
-    if (!$stmt->fetch()) {
+    if (!$check->fetch()) {
+
         sendResponse([
-            'success' => false,
-            'message' => 'Assignment not found'
+            "success" => false,
+            "message" => "Assignment not found."
         ], 404);
+    }
+
+    if (!$author) {
+        $author = "Anonymous";
     }
 
     $stmt = $db->prepare("
@@ -321,33 +410,71 @@ function createComment(PDO $db, array $data): void
         VALUES (?, ?, ?)
     ");
 
-    $success = $stmt->execute([
-        $data['assignment_id'],
-        sanitizeInput($data['author']),
-        sanitizeInput($data['text'])
+    $stmt->execute([
+        $assignmentId,
+        sanitizeInput($author),
+        sanitizeInput($text)
     ]);
 
-    if ($success) {
-        sendResponse([
-            'success' => true,
-            'message' => 'Comment added',
-            'id' => $db->lastInsertId()
-        ], 201);
+    if ($stmt->rowCount() > 0) {
+
+        $newId = $db->lastInsertId();
+
+        $fetch = $db->prepare("
+            SELECT
+                id,
+                assignment_id,
+                author,
+                text,
+                created_at
+            FROM comments_assignment
+            WHERE id = ?
+        ");
+
+        $fetch->execute([$newId]);
+
+        $comment = $fetch->fetch(PDO::FETCH_ASSOC);
+
+        http_response_code(201);
+
+        echo json_encode([
+            "success" => true,
+            "message" => "Comment created.",
+            "id"      => $newId,
+            "data"    => $comment
+        ]);
+
+        exit;
     }
 
     sendResponse([
-        'success' => false,
-        'message' => 'Failed to add comment'
+        "success" => false,
+        "message" => "Failed to create comment."
     ], 500);
 }
 
-function deleteComment(PDO $db, $commentId): void
+function deleteComment($db, $commentId)
 {
     if (!$commentId || !is_numeric($commentId)) {
+
         sendResponse([
-            'success' => false,
-            'message' => 'Invalid comment ID'
+            "success" => false,
+            "message" => "Invalid comment ID."
         ], 400);
+    }
+
+    $check = $db->prepare("
+        SELECT id FROM comments_assignment WHERE id = ?
+    ");
+
+    $check->execute([$commentId]);
+
+    if (!$check->fetch()) {
+
+        sendResponse([
+            "success" => false,
+            "message" => "Comment not found."
+        ], 404);
     }
 
     $stmt = $db->prepare("
@@ -357,25 +484,61 @@ function deleteComment(PDO $db, $commentId): void
     $stmt->execute([$commentId]);
 
     if ($stmt->rowCount() > 0) {
+
         sendResponse([
-            'success' => true,
-            'message' => 'Comment deleted'
+            "success" => true,
+            "message" => "Comment deleted successfully."
         ]);
     }
 
     sendResponse([
-        'success' => false,
-        'message' => 'Comment not found'
-    ], 404);
+        "success" => false,
+        "message" => "Failed to delete comment."
+    ], 500);
+}
+
+function sendResponse($data, $statusCode = 200)
+{
+    http_response_code($statusCode);
+
+    echo json_encode($data);
+
+    exit;
+}
+
+function validateDate($date)
+{
+    $d = DateTime::createFromFormat("Y-m-d", $date);
+
+    return $d && $d->format("Y-m-d") === $date;
+}
+
+function sanitizeInput($data)
+{
+    $data = trim($data);
+    $data = strip_tags($data);
+    $data = htmlspecialchars(
+        $data,
+        ENT_QUOTES,
+        "UTF-8"
+    );
+
+    return $data;
 }
 
 try {
 
-    if ($method === 'GET') {
+    if ($method === "GET") {
 
-        if ($action === 'comments') {
+        if (
+            $action === "comments"
+            && $assignmentId
+        ) {
 
-            getCommentsByAssignment($db, $assignmentId);
+            getCommentsByAssignment(
+                $db,
+                $assignmentId
+            );
 
         } elseif ($id) {
 
@@ -386,9 +549,9 @@ try {
             getAllAssignments($db);
         }
 
-    } elseif ($method === 'POST') {
+    } elseif ($method === "POST") {
 
-        if ($action === 'comment') {
+        if ($action === "comment") {
 
             createComment($db, $data);
 
@@ -397,13 +560,15 @@ try {
             createAssignment($db, $data);
         }
 
-    } elseif ($method === 'PUT') {
+    } elseif ($method === "PUT") {
 
         updateAssignment($db, $data);
 
-    } elseif ($method === 'DELETE') {
+    } elseif ($method === "DELETE") {
 
-        if ($action === 'delete_comment') {
+        if (
+            $action === "delete_comment"
+        ) {
 
             deleteComment($db, $commentId);
 
@@ -415,8 +580,8 @@ try {
     } else {
 
         sendResponse([
-            'success' => false,
-            'message' => 'Method not allowed'
+            "success" => false,
+            "message" => "Method not allowed."
         ], 405);
     }
 
@@ -425,8 +590,8 @@ try {
     error_log($e->getMessage());
 
     sendResponse([
-        'success' => false,
-        'message' => 'Database error'
+        "success" => false,
+        "message" => "Database error."
     ], 500);
 
 } catch (Exception $e) {
@@ -434,34 +599,8 @@ try {
     error_log($e->getMessage());
 
     sendResponse([
-        'success' => false,
-        'message' => 'Server error'
+        "success" => false,
+        "message" => "Server error."
     ], 500);
 }
-
-function sendResponse(array $data, int $statusCode = 200): void
-{
-    http_response_code($statusCode);
-
-    echo json_encode($data, JSON_PRETTY_PRINT);
-
-    exit;
-}
-
-function validateDate(string $date): bool
-{
-    $d = DateTime::createFromFormat('Y-m-d', $date);
-
-    return $d && $d->format('Y-m-d') === $date;
-}
-
-function sanitizeInput(string $data): string
-{
-    return htmlspecialchars(
-        strip_tags(trim($data)),
-        ENT_QUOTES,
-        'UTF-8'
-    );
-}
-    // TODO: return htmlspecialchars(strip_tags(trim($data)), ENT_QUOTES, 'UTF-8');
-}
+?>

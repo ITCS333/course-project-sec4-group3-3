@@ -33,17 +33,17 @@ function getAssignmentIdFromURL() {
 function renderAssignmentDetails(assignment) {
 
   assignmentTitle.textContent =
-    assignment.title;
+    assignment.title || "";
 
   assignmentDueDate.textContent =
-    `Due: ${assignment.due_date}`;
+    `Due: ${assignment.due_date || ""}`;
 
   assignmentDescription.textContent =
-    assignment.description;
+    assignment.description || "";
 
   assignmentFilesList.innerHTML = "";
 
-  assignment.files.forEach(file => {
+  (assignment.files || []).forEach(file => {
 
     const li =
       document.createElement("li");
@@ -70,9 +70,10 @@ function createCommentArticle(comment) {
     document.createElement("article");
 
   article.innerHTML = `
-    <p>${comment.text}</p>
+    <p>${comment.text || ""}</p>
+
     <footer>
-      Posted by: ${comment.author}
+      Posted by: ${comment.author || "Anonymous"}
     </footer>
   `;
 
@@ -101,34 +102,58 @@ async function handleAddComment(event) {
 
   if (!commentText) return;
 
-  const response = await fetch(
-    "./api/index.php?action=comment",
-    {
+  try {
 
-      method: "POST",
+    const response = await fetch(
+      "./api/index.php?action=comment",
+      {
 
-      headers: {
-        "Content-Type": "application/json"
-      },
+        method: "POST",
 
-      body: JSON.stringify({
-        assignment_id: currentAssignmentId,
-        author: "Student",
-        text: commentText
-      })
+        headers: {
+          "Content-Type": "application/json"
+        },
 
+        body: JSON.stringify({
+          assignment_id: currentAssignmentId,
+          author: "Student",
+          text: commentText
+        })
+
+      }
+    );
+
+    const result =
+      await response.json();
+
+    if (result.success) {
+
+      if (result.data) {
+
+        currentComments.push(
+          result.data
+        );
+
+      } else {
+
+        currentComments.push({
+          author: "Student",
+          text: commentText
+        });
+
+      }
+
+      renderComments();
+
+      newCommentInput.value = "";
     }
-  );
 
-  const result = await response.json();
+  } catch (error) {
 
-  if (result.success) {
-
-    currentComments.push(result.data);
-
-    renderComments();
-
-    newCommentInput.value = "";
+    console.error(
+      "Error adding comment:",
+      error
+    );
   }
 }
 
@@ -145,47 +170,63 @@ async function initializePage() {
     return;
   }
 
-  const [
-    assignmentResponse,
-    commentsResponse
-  ] = await Promise.all([
+  try {
 
-    fetch(
-      `./api/index.php?id=${currentAssignmentId}`
-    ),
+    const [
+      assignmentResponse,
+      commentsResponse
+    ] = await Promise.all([
 
-    fetch(
-      `./api/index.php?action=comments&assignment_id=${currentAssignmentId}`
-    )
+      fetch(
+        `./api/index.php?id=${currentAssignmentId}`
+      ),
 
-  ]);
+      fetch(
+        `./api/index.php?action=comments&assignment_id=${currentAssignmentId}`
+      )
 
-  const assignmentResult =
-    await assignmentResponse.json();
+    ]);
 
-  const commentsResult =
-    await commentsResponse.json();
+    const assignmentResult =
+      await assignmentResponse.json();
 
-  currentComments =
-    commentsResult.data || [];
+    const commentsResult =
+      await commentsResponse.json();
 
-  if (
-    assignmentResult.success &&
-    assignmentResult.data
-  ) {
+    currentComments =
+      commentsResult.data || [];
 
-    renderAssignmentDetails(
+    if (
+      assignmentResult.success &&
       assignmentResult.data
+    ) {
+
+      renderAssignmentDetails(
+        assignmentResult.data
+      );
+
+      renderComments();
+
+      if (commentForm) {
+
+        commentForm.addEventListener(
+          "submit",
+          handleAddComment
+        );
+      }
+
+    } else {
+
+      assignmentTitle.textContent =
+        "Assignment not found.";
+    }
+
+  } catch (error) {
+
+    console.error(
+      "Error initializing page:",
+      error
     );
-
-    renderComments();
-
-    commentForm.addEventListener(
-      "submit",
-      handleAddComment
-    );
-
-  } else {
 
     assignmentTitle.textContent =
       "Assignment not found.";
